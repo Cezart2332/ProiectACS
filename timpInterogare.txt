@@ -1,0 +1,22 @@
+Statistici NN:
+Timp mediu de interogare norma=1: 0.01413300
+Timp mediu de interogare norma=2: 0.04304205
+Timp mediu de interogare norma=3: 0.01371402
+Timp mediu de interogare norma=4: 0.09987864
+Statistici kNN:
+Timp mediu de interogare norma=1 si k=1: 0.01402863
+Timp mediu de interogare norma=2 si k=1: 0.04303326
+Timp mediu de interogare norma=3 si k=1: 0.01402358
+Timp mediu de interogare norma=4 si k=1: 0.10005390
+Timp mediu de interogare norma=1 si k=3: 0.01368913
+Timp mediu de interogare norma=2 si k=3: 0.04315784
+Timp mediu de interogare norma=3 si k=3: 0.01375083
+Timp mediu de interogare norma=4 si k=3: 0.10014024
+Timp mediu de interogare norma=1 si k=5: 0.01390692
+Timp mediu de interogare norma=2 si k=5: 0.04323249
+Timp mediu de interogare norma=3 si k=5: 0.01386864
+Timp mediu de interogare norma=4 si k=5: 0.10006827
+Timp mediu de interogare norma=1 si k=7: 0.01395714
+Timp mediu de interogare norma=2 si k=7: 0.04306176
+Timp mediu de interogare norma=3 si k=7: 0.01386048
+Timp mediu de interogare norma=4 si k=7: 0.10115372

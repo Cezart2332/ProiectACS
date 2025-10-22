@@ -1,0 +1,22 @@
+Statistici NN:
+Rata de recunoastere norma=1: 0.96250000
+Rata de recunoastere norma=2: 0.95000000
+Rata de recunoastere norma=3: 0.23750000
+Rata de recunoastere norma=4: 0.92500000
+Statistici kNN:
+Rata de recunoastere norma=1 si k=1: 0.96250000
+Rata de recunoastere norma=2 si k=1: 0.95000000
+Rata de recunoastere norma=3 si k=1: 0.25000000
+Rata de recunoastere norma=4 si k=1: 0.92500000
+Rata de recunoastere norma=1 si k=3: 0.97500000
+Rata de recunoastere norma=2 si k=3: 0.93750000
+Rata de recunoastere norma=3 si k=3: 0.21250000
+Rata de recunoastere norma=4 si k=3: 0.88750000
+Rata de recunoastere norma=1 si k=5: 0.96250000
+Rata de recunoastere norma=2 si k=5: 0.93750000
+Rata de recunoastere norma=3 si k=5: 0.23750000
+Rata de recunoastere norma=4 si k=5: 0.92500000
+Rata de recunoastere norma=1 si k=7: 0.92500000
+Rata de recunoastere norma=2 si k=7: 0.92500000
+Rata de recunoastere norma=3 si k=7: 0.23750000
+Rata de recunoastere norma=4 si k=7: 0.93750000

@@ -1,22 +1,22 @@
 Statistici NN:
-Timp mediu de interogare norma=1: 0.01413300
-Timp mediu de interogare norma=2: 0.04304205
-Timp mediu de interogare norma=3: 0.01371402
-Timp mediu de interogare norma=4: 0.09987864
+Timp mediu de interogare norma=Manhattan: 0.02083560
+Timp mediu de interogare norma=Euclidean: 0.01864927
+Timp mediu de interogare norma=Infinit: 0.01751975
+Timp mediu de interogare norma=Cosinus: 0.02463048
 Statistici kNN:
-Timp mediu de interogare norma=1 si k=1: 0.01402863
-Timp mediu de interogare norma=2 si k=1: 0.04303326
-Timp mediu de interogare norma=3 si k=1: 0.01402358
-Timp mediu de interogare norma=4 si k=1: 0.10005390
-Timp mediu de interogare norma=1 si k=3: 0.01368913
-Timp mediu de interogare norma=2 si k=3: 0.04315784
-Timp mediu de interogare norma=3 si k=3: 0.01375083
-Timp mediu de interogare norma=4 si k=3: 0.10014024
-Timp mediu de interogare norma=1 si k=5: 0.01390692
-Timp mediu de interogare norma=2 si k=5: 0.04323249
-Timp mediu de interogare norma=3 si k=5: 0.01386864
-Timp mediu de interogare norma=4 si k=5: 0.10006827
-Timp mediu de interogare norma=1 si k=7: 0.01395714
-Timp mediu de interogare norma=2 si k=7: 0.04306176
-Timp mediu de interogare norma=3 si k=7: 0.01386048
-Timp mediu de interogare norma=4 si k=7: 0.10115372
+Timp mediu de interogare norma=Manhattan si k=1: 0.01759390
+Timp mediu de interogare norma=Euclidean si k=1: 0.02088367
+Timp mediu de interogare norma=Infinit si k=1: 0.01776197
+Timp mediu de interogare norma=Cosinus si k=1: 0.02489916
+Timp mediu de interogare norma=Manhattan si k=3: 0.01755695
+Timp mediu de interogare norma=Euclidean si k=3: 0.01863433
+Timp mediu de interogare norma=Infinit si k=3: 0.01768151
+Timp mediu de interogare norma=Cosinus si k=3: 0.02443963
+Timp mediu de interogare norma=Manhattan si k=5: 0.01758989
+Timp mediu de interogare norma=Euclidean si k=5: 0.01826139
+Timp mediu de interogare norma=Infinit si k=5: 0.01760535
+Timp mediu de interogare norma=Cosinus si k=5: 0.02430129
+Timp mediu de interogare norma=Manhattan si k=7: 0.01760471
+Timp mediu de interogare norma=Euclidean si k=7: 0.01850704
+Timp mediu de interogare norma=Infinit si k=7: 0.01758685
+Timp mediu de interogare norma=Cosinus si k=7: 0.02453453

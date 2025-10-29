@@ -1,24 +1,45 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './App.css'
 
 const PERSON_COUNT = 40
 const TOTAL_PHOTO_COUNT = 10
+const BACKEND_URL = 'http://127.0.0.1:5000'
 
 function App() {
   // Database configuration
   const [trainSplit, setTrainSplit] = useState(80)
   
   // Algorithm and norm selection
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState('NN')
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('nn')
   const [selectedNorm, setSelectedNorm] = useState('Euclidean')
+  const [selectedK, setSelectedK] = useState(3)
   
   // Photo selection
   const [selectedTestPerson, setSelectedTestPerson] = useState(1)
   const [selectedTestPhoto, setSelectedTestPhoto] = useState(9)
+  const [selectedTestPhotoIndex, setSelectedTestPhotoIndex] = useState(1) // Display index (1, 2, 3...)
   const [matchedPerson, setMatchedPerson] = useState(1)
   const [matchedPhoto, setMatchedPhoto] = useState(1)
+  const [statsGraphSrc, setStatsGraphSrc] = useState<string | null>(null)
 
-  const algorithms = ['NN', 'kNN', 'Eigenfaces', 'Eigenfaces with RC', 'Lanczos', 'Tensor']
+  // Modal state
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [isLoadingExport, setIsLoadingExport] = useState(false)
+  const [isLoadingGraph, setIsLoadingGraph] = useState(false)
+
+  // Image states
+  const [testImage, setTestImage] = useState<string | null>(null)
+  const [matchedImage, setMatchedImage] = useState<string | null>(null)
+  const [loadingTestImage, setLoadingTestImage] = useState(false)
+  const [loadingMatchedImage, setLoadingMatchedImage] = useState(false)
+  const [feedbackModal, setFeedbackModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'success' as 'success' | 'error',
+  })
+
+  const algorithms = ['nn', 'k_nn', 'Eigenfaces', 'Eigenfaces with RC', 'Lanczos', 'Tensor']
   const norms = ['Manhattan', 'Euclidean', 'Infinity', 'Cosinus']
 
   // Calculate training/testing split
@@ -30,26 +51,168 @@ function App() {
     Array.from({ length: PERSON_COUNT }, (_, i) => i + 1), 
     []
   )
-  
-  const testPhotos = useMemo(() => 
-    Array.from({ length: testingPhotos }, (_, i) => trainingPhotos + i + 1), 
-    [trainingPhotos, testingPhotos]
-  )
 
-  const handleSearch = () => {
-    // Placeholder for search functionality
-    console.log('Search clicked', { selectedAlgorithm, selectedNorm, selectedTestPerson, selectedTestPhoto })
-    // Simulate finding a match
-    setMatchedPerson(selectedTestPerson)
-    setMatchedPhoto(selectedTestPhoto)
+  // Map display index (1, 2, 3...) to actual photo indices
+  const handleTestPhotoChange = (displayIndex: number) => {
+    setSelectedTestPhotoIndex(displayIndex)
+    const actualPhotoIndex = trainingPhotos + displayIndex
+    setSelectedTestPhoto(actualPhotoIndex)
   }
 
-  const handlePreprocessing = () => {
-    console.log('Preprocessing clicked', { trainSplit })
+  // Load test image when person or photo changes
+  useEffect(() => {
+    const loadTestImage = async () => {
+      setLoadingTestImage(true)
+      try {
+        const response = await fetch(`${BACKEND_URL}/image/${selectedTestPerson}/${selectedTestPhoto}`)
+        const data = await response.json()
+        if (data.success) {
+          setTestImage(data.image)
+        } else {
+          console.error('Failed to load test image:', data.error)
+          setTestImage(null)
+        }
+      } catch (error) {
+        console.error('Error loading test image:', error)
+        setTestImage(null)
+      } finally {
+        setLoadingTestImage(false)
+      }
+    }
+
+    loadTestImage()
+  }, [selectedTestPerson, selectedTestPhoto])
+
+  useEffect(() => {
+    return () => {
+      if (statsGraphSrc) {
+        URL.revokeObjectURL(statsGraphSrc)
+      }
+    }
+  }, [statsGraphSrc])
+
+  const closeFeedbackModal = () => {
+    setFeedbackModal((current) => ({ ...current, open: false }))
+  }
+
+  const openFeedbackModal = (title: string, message: string, variant: 'success' | 'error') => {
+    setFeedbackModal({ open: true, title, message, variant })
+  }
+
+  const handleSearch = async () => {
+    // Calculate the test photo index in the testing matrix
+    const testPhotoIndex = testingPhotos * (selectedTestPerson - 1) + (selectedTestPhotoIndex - 1)
+    
+    console.log('Search clicked', { 
+      selectedAlgorithm, 
+      selectedNorm,
+      selectedK,
+      selectedTestPerson, 
+      selectedTestPhoto,
+      testPhotoIndex 
+    })
+    
+    setLoadingMatchedImage(true)
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/search/${testPhotoIndex}/${selectedAlgorithm}/${selectedNorm}/${selectedK}`
+      )
+      const data = await response.json()
+      console.log('Search response:', data)
+      
+      if (data && data.success) {
+        setMatchedPerson(data.matched_person)
+        setMatchedPhoto(data.matched_photo)
+        setMatchedImage(data.image)
+      } else {
+        console.error('Search failed:', data.error)
+        openFeedbackModal('Search Failed', data.error || 'Unknown error', 'error')
+      }
+    } catch (error) {
+      console.error('Search error:', error)
+      openFeedbackModal('Search Error', 'Search failed. Make sure preprocessing has been run.', 'error')
+    } finally {
+      setLoadingMatchedImage(false)
+    }
+  }
+
+  const handlePreprocessing = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/preprocessing/${trainingPhotos}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Preprocessing failed')
+      }
+      const data = await response.text()
+      openFeedbackModal('Preprocessing Complete', data || 'Dataset preprocessing finished successfully.', 'success')
+    } catch (error) {
+      console.error('Preprocessing error:', error)
+      openFeedbackModal('Preprocessing Error', 'Unable to preprocess dataset. Check backend logs.', 'error')
+    }
   }
 
   const handleExportStatistics = () => {
-    console.log('Export statistics clicked')
+    setShowExportModal(true)
+  }
+
+  const handleExportFormat = async (format: 'txt' | 'csv') => {
+    setIsLoadingExport(true)
+    try {
+      const response = await fetch(`${BACKEND_URL}/statistics/export/${format}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to download statistics')
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `statistici_recunoastere.${format}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      setShowExportModal(false)
+    } catch (error) {
+      console.error('Error downloading statistics:', error)
+      openFeedbackModal('Export Error', 'Failed to download statistics. Make sure preprocessing has been run.', 'error')
+    } finally {
+      setIsLoadingExport(false)
+    }
+  }
+
+  const handleLoadStatisticsGraph = async () => {
+    setIsLoadingGraph(true)
+    try {
+      const response = await fetch(`${BACKEND_URL}/statistics/graph`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate statistics graph')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      setStatsGraphSrc((previous) => {
+        if (previous) {
+          URL.revokeObjectURL(previous)
+        }
+        return objectUrl
+      })
+    } catch (error) {
+      console.error('Error fetching statistics graph:', error)
+      openFeedbackModal('Graph Error', 'Unable to render statistics graph. Ensure preprocessing and statistics have been executed.', 'error')
+    } finally {
+      setIsLoadingGraph(false)
+    }
   }
 
   return (
@@ -94,6 +257,24 @@ function App() {
               </button>
             ))}
           </div>
+          
+          {/* K Value Selection for k-NN */}
+          {selectedAlgorithm === 'k_nn' && (
+            <div className="k-selector">
+              <label className="k-label">Select k value:</label>
+              <div className="k-options">
+                {[1, 3, 5, 7].map((k) => (
+                  <button
+                    key={k}
+                    className={`k-button ${selectedK === k ? 'selected' : ''}`}
+                    onClick={() => setSelectedK(k)}
+                  >
+                    k = {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Norm Selection */}
@@ -132,21 +313,29 @@ function App() {
               <div className="selector-group">
                 <label>Photo</label>
                 <select 
-                  value={selectedTestPhoto} 
-                  onChange={(e) => setSelectedTestPhoto(Number(e.target.value))}
+                  value={selectedTestPhotoIndex} 
+                  onChange={(e) => handleTestPhotoChange(Number(e.target.value))}
                   className="photo-select"
                 >
-                  {testPhotos.map((p) => (
-                    <option key={p} value={p}>Photo {p}</option>
+                  {Array.from({ length: testingPhotos }, (_, i) => i + 1).map((idx) => (
+                    <option key={idx} value={idx}>Photo {idx}</option>
                   ))}
                 </select>
               </div>
             </div>
             <div className="photo-display">
               <div className="photo-frame">
-                <div className="photo-placeholder">
-                  Person {selectedTestPerson} · Photo {selectedTestPhoto}
-                </div>
+                {loadingTestImage ? (
+                  <div className="image-loading">
+                    <div className="small-spinner"></div>
+                  </div>
+                ) : testImage ? (
+                  <img src={testImage} alt={`Person ${selectedTestPerson} Photo ${selectedTestPhotoIndex}`} className="face-image" />
+                ) : (
+                  <div className="photo-placeholder">
+                    Person {selectedTestPerson} · Photo {selectedTestPhotoIndex}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -158,9 +347,17 @@ function App() {
             </div>
             <div className="photo-display">
               <div className="photo-frame">
-                <div className="photo-placeholder">
-                  Person {matchedPerson} · Photo {matchedPhoto}
-                </div>
+                {loadingMatchedImage ? (
+                  <div className="image-loading">
+                    <div className="small-spinner"></div>
+                  </div>
+                ) : matchedImage ? (
+                  <img src={matchedImage} alt={`Person ${matchedPerson} Photo ${matchedPhoto}`} className="face-image" />
+                ) : (
+                  <div className="photo-placeholder">
+                    Person {matchedPerson} · Photo {matchedPhoto}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -178,6 +375,115 @@ function App() {
             Export Statistics
           </button>
         </div>
+
+        {/* Statistics Visualization */}
+        <div className="graph-section">
+          <h2 className="section-title">Statistics Overview</h2>
+          <div className="graph-card">
+            <div className="graph-header">
+              <div>
+                <h3 className="graph-title">Recognition vs. Time</h3>
+                <p className="graph-subtitle">Compare NN and k-NN using the latest statistics run.</p>
+              </div>
+              <button
+                className="graph-button"
+                onClick={handleLoadStatisticsGraph}
+                disabled={isLoadingGraph}
+              >
+                {isLoadingGraph ? 'Generating...' : 'Generate Graph'}
+              </button>
+            </div>
+            <div className="graph-body">
+              {isLoadingGraph ? (
+                <div className="graph-loading">
+                  <div className="loading-spinner"></div>
+                  <span>Rendering chart...</span>
+                </div>
+              ) : statsGraphSrc ? (
+                <img src={statsGraphSrc} alt="Statistics comparison graph" className="graph-image" />
+              ) : (
+                <div className="graph-placeholder">
+                  Generate the chart after preprocessing to visualize recognition rates and response times.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="modal-overlay" onClick={() => !isLoadingExport && setShowExportModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              {isLoadingExport ? (
+                <>
+                  <div className="loading-spinner-container">
+                    <div className="loading-spinner"></div>
+                    <h2 className="modal-title">Processing Statistics...</h2>
+                    <p className="modal-description">
+                      This may take a few moments while we calculate recognition rates and query times.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="modal-title">Export Statistics</h2>
+                  <p className="modal-description">Choose the file format for your statistics export:</p>
+                  
+                  <div className="modal-buttons">
+                    <button 
+                      className="modal-button csv-button"
+                      onClick={() => handleExportFormat('csv')}
+                    >
+                      <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <div className="button-format">CSV</div>
+                        <div className="button-desc">Spreadsheet format</div>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      className="modal-button txt-button"
+                      onClick={() => handleExportFormat('txt')}
+                    >
+                      <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <div className="button-format">TXT</div>
+                        <div className="button-desc">Plain text format</div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <button 
+                    className="modal-cancel"
+                    onClick={() => setShowExportModal(false)}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Modal */}
+        {feedbackModal.open && (
+          <div className="modal-overlay" onClick={closeFeedbackModal}>
+            <div
+              className={`modal-content feedback-modal ${feedbackModal.variant}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="modal-title">{feedbackModal.title}</h2>
+              <p className="modal-description">{feedbackModal.message}</p>
+              <button className="modal-cancel" onClick={closeFeedbackModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

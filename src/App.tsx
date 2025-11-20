@@ -21,11 +21,13 @@ function App() {
   const [matchedPerson, setMatchedPerson] = useState(1)
   const [matchedPhoto, setMatchedPhoto] = useState(1)
   const [statsGraphSrc, setStatsGraphSrc] = useState<string | null>(null)
+  const [preprocessingGraphSrc, setPreprocessingGraphSrc] = useState<string | null>(null)
 
   // Modal state
   const [showExportModal, setShowExportModal] = useState(false)
   const [isLoadingExport, setIsLoadingExport] = useState(false)
   const [isLoadingGraph, setIsLoadingGraph] = useState(false)
+  const [isLoadingPreprocessingGraph, setIsLoadingPreprocessingGraph] = useState(false)
 
   // Image states
   const [testImage, setTestImage] = useState<string | null>(null)
@@ -88,8 +90,11 @@ function App() {
       if (statsGraphSrc) {
         URL.revokeObjectURL(statsGraphSrc)
       }
+      if (preprocessingGraphSrc) {
+        URL.revokeObjectURL(preprocessingGraphSrc)
+      }
     }
-  }, [statsGraphSrc])
+  }, [statsGraphSrc, preprocessingGraphSrc])
 
   const closeFeedbackModal = () => {
     setFeedbackModal((current) => ({ ...current, open: false }))
@@ -212,6 +217,35 @@ function App() {
       openFeedbackModal('Graph Error', 'Unable to render statistics graph. Ensure preprocessing and statistics have been executed.', 'error')
     } finally {
       setIsLoadingGraph(false)
+    }
+  }
+
+  const handleLoadPreprocessingGraph = async () => {
+    setIsLoadingPreprocessingGraph(true)
+    try {
+      const response = await fetch(`${BACKEND_URL}/statistics/preprocessing-graph`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate preprocessing graph')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      setPreprocessingGraphSrc((previous) => {
+        if (previous) {
+          URL.revokeObjectURL(previous)
+        }
+        return objectUrl
+      })
+    } catch (error) {
+      console.error('Error fetching preprocessing graph:', error)
+      openFeedbackModal('Graph Error', 'Unable to render preprocessing graph. Make sure preprocessing has run successfully.', 'error')
+    } finally {
+      setIsLoadingPreprocessingGraph(false)
     }
   }
 
@@ -383,7 +417,7 @@ function App() {
             <div className="graph-header">
               <div>
                 <h3 className="graph-title">Recognition vs. Time</h3>
-                <p className="graph-subtitle">Compare NN and k-NN using the latest statistics run.</p>
+
               </div>
               <button
                 className="graph-button"
@@ -403,7 +437,36 @@ function App() {
                 <img src={statsGraphSrc} alt="Statistics comparison graph" className="graph-image" />
               ) : (
                 <div className="graph-placeholder">
-                  Generate the chart after preprocessing to visualize recognition rates and response times.
+                  Generate the chart after preprocessing to visualize recognition rates and response times for every algorithm.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="graph-card">
+            <div className="graph-header">
+              <div>
+                <h3 className="graph-title">Preprocessing Duration</h3>
+              </div>
+              <button
+                className="graph-button"
+                onClick={handleLoadPreprocessingGraph}
+                disabled={isLoadingPreprocessingGraph}
+              >
+                {isLoadingPreprocessingGraph ? 'Generating...' : 'Generate Graph'}
+              </button>
+            </div>
+            <div className="graph-body">
+              {isLoadingPreprocessingGraph ? (
+                <div className="graph-loading">
+                  <div className="loading-spinner"></div>
+                  <span>Rendering chart...</span>
+                </div>
+              ) : preprocessingGraphSrc ? (
+                <img src={preprocessingGraphSrc} alt="Preprocessing time comparison graph" className="graph-image" />
+              ) : (
+                <div className="graph-placeholder">
+                  Generate the chart to compare preprocessing times for Eigenfaces, Eigenfaces with RC, and Lanczos.
                 </div>
               )}
             </div>
